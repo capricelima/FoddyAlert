@@ -1,7 +1,9 @@
+// scripts/checkExpiringFoods.js
+const functions = require("firebase-functions"); // opcional, só se precisar localmente
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 
-// Inicializa Firebase Admin com a variável de ambiente FIREBASE_SERVICE_ACCOUNT
+// Inicializa Firebase Admin com a conta de serviço
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
 admin.initializeApp({
@@ -10,51 +12,47 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-// Configurar email
+// Configura email com Nodemailer
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: process.env.EMAIL_USER,  // email remetente
+    pass: process.env.EMAIL_PASS,  // senha de app
   },
 });
 
+async function main() {
+  console.log("========== Iniciando checkExpiringFoods.js ==========");
+  
+  try {
+    const snapshot = await db.collection("foods").get();
 
-async function checkExpiringFoods() {
-  const snapshot = await db.collection("foods").get();
-  const today = new Date();
+    if (snapshot.empty) {
+      console.log("Nenhum alimento encontrado no Firestore.");
+      return;
+    }
 
-  for (const doc of snapshot.docs) {
-    const food = doc.data();
-    const expiryDate = new Date(food.expiry);
-    const diff = (expiryDate - today) / (1000 * 60 * 60 * 24);
+    for (const doc of snapshot.docs) {
+      const food = doc.data();
+      const today = new Date();
+      const expiryDate = new Date(food.expiry);
+      const diffDays = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
 
-    if (diff <= 60 && diff > 0 && !food.alertSent) {
-      try {
-        const userDoc = await db.collection("users").doc(food.userId).get();
-        const userEmail = userDoc.exists ? userDoc.data().email : null;
+      console.log("\nProcessando alimento:", food.name);
+      console.log("Data de validade:", food.expiry);
+      console.log("Dias restantes:", diffDays);
+      console.log("Alert sent:", food.alertSent);
+      console.log("Email do usuário:", food.userEmail);
 
-        if (userEmail) {
+      // Condição para envio do alerta
+      if (diffDays <= 60 && diffDays > 0 && !food.alertSent && food.userEmail) {
+        try {
           await transporter.sendMail({
             from: process.env.EMAIL_USER,
-            to: userEmail,
-            subject: `Alimento perto da validade: ${food.name}`,
-            text: `O alimento "${food.name}" vence em ${Math.ceil(diff)} dias.`,
+            to: food.userEmail,
+            subject: "Alimento perto da validade",
+            text: `O alimento "${food.name}" vence em ${diffDays} dias.`,
           });
+          console.log("✅ Email enviado para:", food.userEmail);
 
-          await db.collection("foods").doc(doc.id).update({ alertSent: true });
-          console.log(`Alerta enviado para ${userEmail} sobre ${food.name}`);
-          console.log('Verificando alimento:', food.name);
-          console.log('Dias restantes:', Math.ceil(diff));
-          console.log('Email do usuário:', food.userEmail);
-          console.log('Alert sent:', food.alertSent);
-
-        }
-      } catch (err) {
-        console.error("Erro ao enviar email:", err);
-      }
-    }
-  }
-}
-
-checkExpiringFoods().then(() => console.log("Check finalizado."));
+          // At
