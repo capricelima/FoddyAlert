@@ -2,7 +2,7 @@ const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 
 // Inicializa Firebase Admin com a variável de ambiente FIREBASE_SERVICE_ACCOUNT
-const serviceAccount = JSON.parse(Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT, 'base64').toString());
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -18,6 +18,7 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASS,
   },
 });
+
 
 async function checkExpiringFoods() {
   const snapshot = await db.collection("foods").get();
