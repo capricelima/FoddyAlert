@@ -44,6 +44,11 @@ async function checkExpiringFoods() {
 
           await db.collection("foods").doc(doc.id).update({ alertSent: true });
           console.log(`Alerta enviado para ${userEmail} sobre ${food.name}`);
+          console.log('Verificando alimento:', food.name);
+          console.log('Dias restantes:', Math.ceil(diff));
+          console.log('Email do usuário:', food.userEmail);
+          console.log('Alert sent:', food.alertSent);
+
         }
       } catch (err) {
         console.error("Erro ao enviar email:", err);
