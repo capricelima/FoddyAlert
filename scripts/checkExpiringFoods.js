@@ -55,4 +55,22 @@ async function main() {
           });
           console.log("✅ Email enviado para:", food.userEmail);
 
-          // At
+          // Atualiza no Firestore que o alerta foi enviado
+          await db.collection("foods").doc(doc.id).update({ alertSent: true });
+        } catch (err) {
+          console.error("❌ Erro ao enviar email para", food.userEmail, ":", err);
+        }
+      } else {
+        console.log("⏩ Alerta não enviado (não atende critérios).");
+      }
+    }
+
+    console.log("========== checkExpiringFoods.js finalizado ==========");
+  } catch (error) {
+    console.error("Erro ao acessar Firestore:", error);
+  }
+}
+
+// Executa a função
+main();
+
