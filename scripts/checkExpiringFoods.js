@@ -1,5 +1,5 @@
 // scripts/checkExpiringFoods.js
-const functions = require("firebase-functions"); // opcional, só se precisar localmente
+
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 
